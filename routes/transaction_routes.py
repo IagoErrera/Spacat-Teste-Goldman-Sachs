@@ -57,7 +57,7 @@ async def transfer(
 
     amount_with_fees = transaction_request.amount + fee_fixed + (transaction_request.amount * fee_relative)
 
-    if source_account.balance < transaction_request.amount:
+    if source_account.balance < transaction_request.amount or source_account.balance - amount_with_fees < 0:
         raise HTTPException(status_code=400, detail="Insufficient funds for transfer")
     
     source_account = account_repo.withdraw(source_user_id, source_account_type, amount_with_fees)

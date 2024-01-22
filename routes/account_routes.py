@@ -50,6 +50,7 @@ async def deposit(
     account_type: AccountType,
     transaction_request: SameAccountTransactionRequest,
     user_repo: UserRepository = Depends(get_user_repository),
+    transaction_repo: TransactionRepository = Depends(get_transaction_repository),
     account_repo: AccountRepository = Depends(get_account_repository),
 ):
     user = user_repo.find_by_id(user_id)
@@ -64,7 +65,16 @@ async def deposit(
         raise HTTPException(status_code=400, detail="Amount must be positive")
     
     updated_account = account_repo.deposit(user_id, account_type, transaction_request.amount)
-    
+    transaction = transaction_repo.create(
+        source_user_id=user_id,
+        source_account_type=account_type,
+        target_user_id=user_id,
+        target_account_type=account_type,
+        amount=transaction_request.amount,
+        type=TransactionType.deposit,
+    )
+
+    transaction.model_dump()
     return updated_account.model_dump()
 
 @account_router.put("/{account_type}/withdraw", response_model=Account)
@@ -73,6 +83,7 @@ async def withdraw(
     account_type: AccountType,
     transaction_request: SameAccountTransactionRequest,
     user_repo: UserRepository = Depends(get_user_repository),
+    transaction_repo: TransactionRepository = Depends(get_transaction_repository),
     account_repo: AccountRepository = Depends(get_account_repository),    
 ):
     user = user_repo.find_by_id(user_id)
@@ -83,12 +94,21 @@ async def withdraw(
     if account is None or account.user_id != user_id:
         raise HTTPException(status_code=404, detail="Account not found")
     
-    if account.balance < transaction_request.amount:
+    if account.balance < transaction_request.amount or (account.balance - transaction_request.amount) < 0:
         raise HTTPException(status_code=400, detail="Insufficient funds")
     
     if transaction_request.amount < 0:
         raise HTTPException(status_code=400, detail="Amount must be positive")
 
     updated_account = account_repo.withdraw(user_id, account_type, transaction_request.amount)
+    transaction = transaction_repo.create(
+        source_user_id=user_id,
+        source_account_type=account_type,
+        target_user_id=user_id,
+        target_account_type=account_type,
+        amount=transaction_request.amount,
+        type=TransactionType.withdraw,
+    )
 
+    transaction.model_dump()
     return updated_account.model_dump()

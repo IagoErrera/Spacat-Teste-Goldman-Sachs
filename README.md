@@ -8,6 +8,7 @@ Certifique-se de ter o Python instalado. Instale a dependência do fastapi.
 
 ```bash
 pip install fastapi
+pip install uvicorn
 ```
 
 ## Executando a API
